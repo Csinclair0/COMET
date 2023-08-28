@@ -28,6 +28,7 @@ import numpy as np
 import pytorch_lightning as ptl
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, Subset
+from transformers import AdapterConfig
 
 from comet.encoders import str2encoder
 from comet.modules import LayerwiseAttention
@@ -110,6 +111,7 @@ class CometModel(ptl.LightningModule, metaclass=abc.ABCMeta):
         validation_data: Optional[List[str]] = None,
         class_identifier: Optional[str] = None,
         load_pretrained_weights: bool = True,
+        task_name: str = "general"
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
