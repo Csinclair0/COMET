@@ -625,6 +625,12 @@ class CometModel(ptl.LightningModule, metaclass=abc.ABCMeta):
             category=UserWarning,
             message=".*Consider increasing the value of the `num_workers` argument` .*",
         )
+        if type(devices) == list:
+            import os 
+            original_devices = os.environ["CUDA_VISIBLE_DEVICES"][:]
+            device_id = devices[0]
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(device_id)
+
         trainer = ptl.Trainer(
             devices=devices,
             logger=False,
@@ -651,6 +657,8 @@ class CometModel(ptl.LightningModule, metaclass=abc.ABCMeta):
             # If we are not in the GLOBAL RANK we will return None
             exit()
 
+        if type(devices) == list:
+            os.environ["CUDA_VISIBLE_DEVICES"] = original_devices
         scores = torch.cat([pred["scores"] for pred in predictions], dim=0).tolist()
         if "metadata" in predictions[0]:
             metadata = flatten_metadata([pred["metadata"] for pred in predictions])
