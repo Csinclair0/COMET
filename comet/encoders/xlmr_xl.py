@@ -36,7 +36,7 @@ class XLMRXLEncoder(XLMREncoder):
         self, pretrained_model: str, load_pretrained_weights: bool = True
     ) -> None:
         super(Encoder, self).__init__()
-        self.tokenizer = XLMRobertaTokenizerFast.from_pretrained(pretrained_model)
+        self.tokenizer = XLMRobertaTokenizerFast.from_pretrained(pretrained_model, force_download = True) # MLP issues
         if load_pretrained_weights:
             self.model = XLMRobertaXLModel.from_pretrained(
                 pretrained_model, add_pooling_layer=False
