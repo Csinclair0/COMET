@@ -127,7 +127,47 @@ class XCOMETMetric(UnifiedMetric):
         self.init_losses()
         self.save_hyperparameters()
 
+    
+    def set_mc_dropout(self, value: int):
+        """Sets Monte Carlo Dropout runs per sample.
+
+        Args:
+            value (int): number of runs per sample.
+        """
+        self.mc_dropout = value
+
     def predict_step(
+        self,
+        batch: Dict[str, torch.Tensor],
+        batch_idx: Optional[int] = None,
+        dataloader_idx: Optional[int] = None,
+        ) -> Prediction:
+        self.eval()
+        prediction = self.predict_step_single(batch, batch_idx, dataloader_idx)
+        if self.mc_dropout > 0:
+            self.train()
+            mcd_predictions = [self.predict_step_single(batch, batch_idx, dataloader_idx) for _ in range(self.mc_dropout)]
+            mcd_scores = [x.scores for x in mcd_predictions]
+            mcd_metadata = [x.metadata for x in mcd_predictions]
+            mcd_scores = [[tensor.item() for tensor in sublist] for sublist in zip(*mcd_scores)]
+            #mcd_metadata = [list(x) for x in zip(*mcd_metadata)]
+            metadata = prediction.metadata
+            metadata['scores_mcd'] = mcd_scores
+            for key in ['src_scores', 'mqm_scores', 'ref_scores']:
+                if key not in metadata:
+                    continue
+                mcd_m_scores = [x[key] for x in mcd_metadata]
+                metadata[f'{key}_mcd'] = [[tensor.item() for tensor in sublist] for sublist in zip(*mcd_m_scores)]
+
+
+            prediction = Prediction(
+                scores=prediction.scores,
+                metadata=metadata, 
+            )
+
+        return prediction
+
+    def predict_step_single(
         self,
         batch: Dict[str, torch.Tensor],
         batch_idx: Optional[int] = None,
@@ -221,6 +261,7 @@ class XCOMETMetric(UnifiedMetric):
 
         # XCOMET if reference is not available we fall back to QE model.
         else:
+            
             model_output = self.forward(**batch[0])
             regression_score = torch.where(
                 model_output.score > max_score, max_score, model_output.score
