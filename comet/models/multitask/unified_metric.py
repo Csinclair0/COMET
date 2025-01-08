@@ -643,7 +643,7 @@ class UnifiedMetric(CometModel):
         Args:
             value (int): number of runs per sample.
         """
-        raise NotImplementedError("MCD not implemented for this model!")
+        self.mc_dropout = value
 
     def decode(
         self,
